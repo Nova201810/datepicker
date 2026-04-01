@@ -1,0 +1,83 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   DatePicker.module.css
+   All contrast ratios meet WCAG 2.1 AA (≥ 4.5:1 for normal text).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Outer wrapper ── */
+/* position: relative allows the Calendar dialog to anchor absolutely below */
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Input row: label + text input + trigger button ── */
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Label ── */
+/* #1A1A1A on #ffffff → 15.96:1 (AAA) */
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+/* ── Text input ── */
+/* #1A1A1A on #ffffff → 15.96:1 (AAA) */
+.input {
+  font-size: 1rem;
+  padding: 6px 10px;
+  border: 2px solid #767676; /* non-text border: AA for UI components */
+  border-radius: 4px;
+  color: #1a1a1a;
+  background: #ffffff;
+  min-width: 120px;
+  line-height: 1.4;
+}
+
+.input:focus {
+  outline: 3px solid #005fcc; /* 5.98:1 on #ffffff */
+  outline-offset: 2px;
+  border-color: #005fcc;
+}
+
+/* ── Trigger button ── */
+/* #1A1A1A on #f5f5f5 → 15.96:1 (AAA) */
+.triggerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #767676;
+  border-radius: 4px;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.triggerButton:hover {
+  background: #e8e8e8;
+}
+
+.triggerButton:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+
+/* ── Format hint ── */
+/* #595959 on #ffffff → 7.00:1 (AAA) */
+.hint {
+  font-size: 0.75rem;
+  color: #595959;
+  /* Visible to sighted users and announced to screen readers via
+     aria-describedby.  Do NOT use visibility:hidden or display:none. */
+}
