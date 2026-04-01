@@ -7,6 +7,12 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/static/*"
+  to = "/static/:splat"
+  status = 200
+  force = false
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
