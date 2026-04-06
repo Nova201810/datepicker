@@ -54,7 +54,7 @@
 ```bash
 yarn install
 yarn start      # dev-сервер
-yarn run build  # production-сборка
+yarn build  # production-сборка
 ```
 
 ---
