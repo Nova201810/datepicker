@@ -1,9 +1,5 @@
-/**
- * Style component for a single day button.
- *
- * The button keeps real DOM focus so screen readers announce its label and
- * state reliably while keyboard navigation moves across the calendar grid.
- */
+// По паттерну APG Date Picker Dialog интерактивным элементом является <button> внутри <td>,
+// а не сама ячейка — это обеспечивает корректное объявление метки скринридером.
 import React, { KeyboardEvent } from 'react';
 import type { CalendarCell } from './types';
 import styles from './Calendar.module.css';

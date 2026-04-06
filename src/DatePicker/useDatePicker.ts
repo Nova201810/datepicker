@@ -38,7 +38,6 @@ export interface UseDatePickerReturn {
   navigateNextYear: () => void;
 
   focusedDate: Date;
-  /** Update the roving-tabindex target.  Auto-syncs the view month. */
   updateFocusedDate: (date: Date) => void;
 
   confirmDate: (date: Date) => void;
@@ -55,7 +54,6 @@ export interface UseDatePickerReturn {
 
   triggerAriaLabel: string;
 
-  /** firstDayOfWeek needed by Calendar for keyboard Home/End calculation */
   firstDayOfWeek: 0 | 1;
 }
 
@@ -70,15 +68,12 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
 
   const today = useMemo(() => toMidnight(new Date()), []);
 
-  // ─── Stable refs ────────────────────────────────────────────────────────────
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  // Always reflects the latest inputValue without being a closure dependency.
-  // Prevents handleInputBlur from reading a stale value when the blur fires
-  // in the same tick as the last onChange (before React re-renders).
+  // Ref вместо state: handleInputBlur должен читать актуальное значение в момент blur,
+  // а не то, что было закрыто в колбэке до последнего рендера.
   const inputValueRef = useRef('');
 
-  // ─── Core state ─────────────────────────────────────────────────────────────
   const [isOpen, setIsOpen] = useState(false);
 
   const [viewYear, setViewYear] = useState(
@@ -93,19 +88,16 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
   const [inputValue, setInputValue] = useState(
     () => (value ? formatShortDate(value, locale) : ''),
   );
-  // Keep ref in sync so handleInputBlur always reads the latest value.
   inputValueRef.current = inputValue;
 
-  // Track the "pending" date while the dialog is open (separate from the
-  // committed `value` prop so Escape can discard changes).
+  // pendingDate — дата внутри открытого диалога. Escape её отбрасывает;
+  // подтверждение (Enter / клик) записывает в value через onChange.
   const [pendingDate, setPendingDate] = useState<Date | undefined>(
     () => (value ? toMidnight(value) : undefined),
   );
 
-  // ─── Sync when controlled `value` changes ──────────────────────────────────
-  // Use the numeric timestamp as the effect dependency so that a parent
-  // passing `new Date(sameTimestamp)` on every render does NOT re-run the
-  // effect and overwrite what the user typed in the input.
+  // Числовой timestamp вместо Date-объекта: родитель может передавать new Date(same)
+  // на каждом рендере, и эффект не будет перезаписывать то, что набрал пользователь.
   const valueTime = value ? toMidnight(value).getTime() : null;
   useEffect(() => {
     if (valueTime !== null) {
@@ -121,15 +113,13 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
     }
   }, [valueTime, locale]);
 
-  // ─── Return focus to trigger after dialog closes ────────────────────────────
   useEffect(() => {
     if (!isOpen) {
-      // Use a microtask so that the Calendar has unmounted first.
+      // Возврат фокуса на триггер — обязательное требование WCAG 2.4.3.
+      // Микротаск гарантирует, что фокус-ловушка диалога уже деактивирована.
       Promise.resolve().then(() => triggerRef.current?.focus());
     }
   }, [isOpen]);
-
-  // ─── Navigation helpers ──────────────────────────────────────────────────────
 
   const setView = useCallback((year: number, month: number) => {
     setViewYear(year);
@@ -154,13 +144,11 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
     setView(viewYear + 1, viewMonth);
   }, [viewYear, viewMonth, setView]);
 
-  // ─── Roving tabindex target ──────────────────────────────────────────────────
-
   const updateFocusedDate = useCallback(
     (date: Date) => {
       const clamped = clampDate(date, minDate, maxDate);
       _setFocusedDate(clamped);
-      // Sync the view when the focused date crosses a month boundary.
+      // При переходе через границу месяца синхронизируем видимый месяц.
       if (
         clamped.getMonth() !== viewMonth ||
         clamped.getFullYear() !== viewYear
@@ -171,16 +159,11 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
     [minDate, maxDate, viewMonth, viewYear, setView],
   );
 
-  // ─── Open / close ────────────────────────────────────────────────────────────
-
   const openDialog = useCallback(() => {
-    // Show the value's actual month WITHOUT clamping, so an out-of-range
-    // programmatic value shows that month with disabled cells instead of
-    // jumping to the nearest valid month.
+    // Открываем месяц выбранной даты без clamping: если value вне диапазона,
+    // показываем тот месяц с заблокированными ячейками, а не ближайший допустимый.
     const base = value ? toMidnight(value) : toMidnight(today);
     _setFocusedDate(base);
-    // Use the raw state setters (not the setView callback) to guarantee
-    // no stale-closure skew between focusedDate and the view.
     setViewYear(base.getFullYear());
     setViewMonth(base.getMonth());
     setPendingDate(value ? base : undefined);
@@ -209,15 +192,13 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
     [onChange, locale],
   );
 
-  // ─── Text input ──────────────────────────────────────────────────────────────
-
   const sep = useMemo(() => getDateSeparator(locale), [locale]);
 
   const handleInputChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
-      // When the user is deleting (raw is shorter than current value), pass
-      // through unchanged so backspace doesn't fight the mask.
+      // При удалении (raw короче текущего значения) пропускаем маску,
+      // чтобы backspace не конфликтовал с автоподстановкой разделителей.
       const prev = inputValueRef.current;
       const masked =
         raw.length < prev.length ? raw : applyDateMask(raw, sep);
@@ -229,7 +210,6 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
   const handleInputBlur = useCallback(() => {
     const trimmed = inputValueRef.current.trim();
 
-    // Empty input → clear the date.
     if (trimmed === '') {
       onChange(null);
       setInputValue('');
@@ -245,12 +225,10 @@ export function useDatePicker(props: DatePickerProps): UseDatePickerReturn {
       setViewYear(clamped.getFullYear());
       setViewMonth(clamped.getMonth());
     } else {
-      // Unparseable input — revert to last known good value.
+      // Невалидный ввод — откатываемся к последнему известному значению.
       setInputValue(value ? formatShortDate(value, locale) : '');
     }
   }, [locale, minDate, maxDate, onChange, value, setViewYear, setViewMonth]);
-
-  // ─── Derived values ──────────────────────────────────────────────────────────
 
   const prevDisabled = calcPrevDisabled(viewYear, viewMonth, minDate);
   const nextDisabled = calcNextDisabled(viewYear, viewMonth, maxDate);

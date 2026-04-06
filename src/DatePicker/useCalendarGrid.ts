@@ -18,7 +18,6 @@ interface UseCalendarGridParams {
   viewYear: number;
   viewMonth: number; // 0-indexed
   selectedDate: Date | undefined;
-  /** The date that currently holds tabIndex=0 (roving tabindex target). */
   focusedDate: Date;
   locale: string;
   minDate?: Date;
@@ -26,11 +25,6 @@ interface UseCalendarGridParams {
   disabledDates?: Date[];
 }
 
-/**
- * Pure-computation hook.
- * Returns fully annotated CalendarGridData — ready to render with no further
- * logic in the component. All heavy work is memoised.
- */
 export function useCalendarGrid(params: UseCalendarGridParams): CalendarGridData {
   const {
     viewYear,
@@ -65,6 +59,7 @@ export function useCalendarGrid(params: UseCalendarGridParams): CalendarGridData
       rawRow.map((rawCell): CalendarCell => {
         const isSelected = selectedDate ? isSameDay(rawCell.date, selectedDate) : false;
         const isDisabled = isDateDisabled(rawCell.date, minDate, maxDate, disabledDates);
+        // Скринридер озвучивает полную метку: «15 марта 2025, выбрано» или «... недоступно».
         const labelParts = [
           formatFullDate(rawCell.date, locale),
           isSelected ? getUiString(locale, 'selected') : null,

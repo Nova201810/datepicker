@@ -1,14 +1,3 @@
-/**
- * Container Component — паттерн «Компонент-контейнер».
- *
- * Отвечает за всю нетривиальную логику диалога:
- *  - управление фокусом (mount → dialog → grid cell)
- *  - live-регион для объявления смены месяца скринридером
- *  - закрытие по клику вне области
- *  - обработка клавиатуры (Event Switch)
- *  - вычисление данных грида через useCalendarGrid
- *
- * Рендер делегирует атомарным компонентам NavButton и DayButton. */
 import React, { KeyboardEvent, useEffect, useId, useRef } from 'react';
 import { DayButton } from './DayButton';
 import { NavButton } from './NavButton';
@@ -42,11 +31,10 @@ export interface CalendarProps {
   onFocusedDateChange: (date: Date) => void;
   onConfirm: (date: Date) => void;
   onClose: (commit: boolean) => void;
-  /** Ref to the trigger button — excluded from click-outside detection to
-   *  prevent the pointerdown→close race with the trigger's own click handler. */
+  /** Ссылка на кнопку-триггер: исключается из click-outside, иначе pointerdown закроет диалог
+   *  раньше, чем click триггера успеет его открыть заново */
   triggerRef: React.RefObject<HTMLButtonElement>;
-  /** Extra class applied to the dialog root — used by the parent to drive
-   *  enter/leave CSS animations without unmounting the component early. */
+  /** CSS-класс анимации, передаётся родителем: диалог остаётся в DOM во время анимации закрытия */
   dialogClassName?: string;
 }
 
@@ -103,6 +91,8 @@ export function Calendar(props: CalendarProps): React.ReactElement {
   useEffect(() => {
     if (isMountRef.current) {
       isMountRef.current = false;
+      // При первом открытии: сначала фокусируем контейнер диалога (AT объявляет его label),
+      // затем через rAF переводим фокус на активную ячейку грида.
       dialogRef.current?.focus();
       requestAnimationFrame(() => {
         tbodyRef.current
@@ -128,8 +118,8 @@ export function Calendar(props: CalendarProps): React.ReactElement {
     disabledDates,
   });
 
-  // Live-регион срабатывает только при клике на кнопки навигации,
-  // но не при переходе через границу месяца стрелкой клавиатуры.
+  // Live-регион обновляется только при клике на кнопки навигации, но не при переходе
+  // клавиатурой — иначе скринридер прерывал бы объявление каждой ячейки сменой месяца.
   useEffect(() => {
     if (monthChangedByNavRef.current) {
       monthChangedByNavRef.current = false;
@@ -139,7 +129,7 @@ export function Calendar(props: CalendarProps): React.ReactElement {
 
   const firstDayOfWeek = getFirstDayOfWeek(locale);
 
-  // ─── Event Switch — клавиатурная навигация грида ──────────────────────────
+  // Клавиатурная навигация грида (Event Switch)
   function handleGridKeyDown(
     e: KeyboardEvent<HTMLButtonElement>,
     cell: CalendarCell,
@@ -226,7 +216,6 @@ export function Calendar(props: CalendarProps): React.ReactElement {
     onNextMonth();
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div
       ref={dialogRef}
@@ -237,8 +226,7 @@ export function Calendar(props: CalendarProps): React.ReactElement {
       onKeyDown={handleDialogKeyDown}
       className={[styles.dialog, dialogClassName].filter(Boolean).join(' ')}
     >
-      {/* Скрытый assertive live-регион: объявляет смену месяца только
-          при клике на кнопки навигации. */}
+      {/* assertive: смена месяца должна прерывать текущее чтение, иначе пользователь не поймёт, куда перешёл */}
       <span role="status" aria-live="assertive" aria-atomic="true" className={styles.srOnly}>
         {liveText}
       </span>

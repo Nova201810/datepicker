@@ -1,21 +1,8 @@
-/**
- * Locale-sensitive formatting helpers.
- * Every function accepts a BCP 47 locale string and uses native Intl APIs.
- * Falls back gracefully on engines that lack newer Intl features.
- */
-
 import type { WeekdayHeader } from '../types';
 
-// ─── Week start day ──────────────────────────────────────────────────────────
-
-/**
- * Returns 0 (Sunday) or 1 (Monday) for the locale's first day of week.
- * Uses Intl.Locale getWeekInfo() / weekInfo with fallback to Monday.
- */
 export function getFirstDayOfWeek(locale: string): 0 | 1 {
   try {
     const loc = new Intl.Locale(locale);
-    // Modern: getWeekInfo() method
     type LocaleWithWeekInfo = typeof loc & {
       getWeekInfo?: () => { firstDay: number };
       weekInfo?: { firstDay: number };
@@ -24,24 +11,15 @@ export function getFirstDayOfWeek(locale: string): 0 | 1 {
     const firstDay =
       extended.getWeekInfo?.().firstDay ?? extended.weekInfo?.firstDay;
     if (firstDay !== undefined) {
-      // ISO: 7 = Sunday, 1 = Monday
+      // В ISO-кодировке воскресенье = 7, а не 0 — поэтому явное сравнение.
       return firstDay === 7 ? 0 : 1;
     }
   } catch {
     // ignore
   }
-  // Safe international default: Monday
   return 1;
 }
 
-// ─── Column headers ──────────────────────────────────────────────────────────
-
-/**
- * Returns 7 WeekdayHeader objects ordered so the first entry matches the
- * locale's first day of week.
- *
- * Reference Sunday: 2025-01-05 (a known Sunday in local time).
- */
 export function getWeekdayHeaders(locale: string): WeekdayHeader[] {
   const firstDow = getFirstDayOfWeek(locale);
 
@@ -51,10 +29,9 @@ export function getWeekdayHeaders(locale: string): WeekdayHeader[] {
     long: new Intl.DateTimeFormat(locale, { weekday: 'long' }),
   };
 
-  // Build raw array indexed by absolute day (0 = Sun)
   const all: WeekdayHeader[] = [];
   for (let i = 0; i < 7; i++) {
-    // 2025-01-05 is Sunday; adding i gives Mon through Sat
+    // 2025-01-05 — известное воскресенье; прибавляем i для получения Пн–Сб.
     const refDate = new Date(2025, 0, 5 + i);
     all.push({
       dayIndex: refDate.getDay(),
@@ -64,14 +41,9 @@ export function getWeekdayHeaders(locale: string): WeekdayHeader[] {
     });
   }
 
-  // Rotate so that firstDow comes first
-  const offset = firstDow; // 0 = Sun already first; 1 = Mon needs rotation
   return [...all.slice(firstDow), ...all.slice(0, firstDow)];
 }
 
-// ─── Date formatting ─────────────────────────────────────────────────────────
-
-/** "March 2025" / "март 2025 г." */
 export function formatMonthYear(date: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     month: 'long',
@@ -79,10 +51,6 @@ export function formatMonthYear(date: Date, locale: string): string {
   }).format(date);
 }
 
-/**
- * Full date string for td aria-label.
- * e.g. "Saturday, March 15, 2025" / "суббота, 15 марта 2025 г."
- */
 export function formatFullDate(date: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: 'long',
@@ -92,10 +60,6 @@ export function formatFullDate(date: Date, locale: string): string {
   }).format(date);
 }
 
-/**
- * Short display format for the text input.
- * e.g. "03/15/2025" (en-US) / "15.03.2025" (ru-RU)
- */
 export function formatShortDate(date: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
@@ -104,14 +68,8 @@ export function formatShortDate(date: Date, locale: string): string {
   }).format(date);
 }
 
-// ─── Format hint ─────────────────────────────────────────────────────────────
-
-/**
- * Returns a placeholder pattern string derived from the locale's short format.
- * e.g. "MM/DD/YYYY" for en-US, "DD.MM.YYYY" for ru-RU.
- */
 export function getFormatHint(locale: string): string {
-  const knownDate = new Date(2001, 2, 4); // 04 Mar 2001 — day & month are unambiguous
+  const knownDate = new Date(2001, 2, 4);
   const parts = new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: '2-digit',
@@ -138,17 +96,10 @@ export function getFormatHint(locale: string): string {
     .join('');
 }
 
-// ─── Input parsing ────────────────────────────────────────────────────────────
-
-/**
- * Parse a user-typed string that matches the locale's short date format.
- * Returns a Date at local midnight or null if the string is invalid.
- */
 export function parseShortDate(str: string, locale: string): Date | null {
   const trimmed = str.trim();
   if (!trimmed) return null;
 
-  // Determine field order + separator from a known date.
   const knownDate = new Date(2001, 2, 4);
   const parts = new Intl.DateTimeFormat(locale, {
     year: 'numeric',
@@ -156,7 +107,6 @@ export function parseShortDate(str: string, locale: string): Date | null {
     day: '2-digit',
   }).formatToParts(knownDate);
 
-  // Collect literal separators and field order
   const fields: Array<'year' | 'month' | 'day'> = [];
   const separators: string[] = [];
 
@@ -170,7 +120,6 @@ export function parseShortDate(str: string, locale: string): Date | null {
 
   if (fields.length !== 3) return null;
 
-  // Build a regex: 3 numeric groups separated by the locale's separators.
   const sep0 = separators[0] ?? '[./-]';
   const sep1 = separators[1] ?? '[./-]';
   const pattern = new RegExp(
@@ -198,7 +147,6 @@ export function parseShortDate(str: string, locale: string): Date | null {
   if (day < 1 || day > 31) return null;
 
   const date = new Date(year, month - 1, day);
-  // Guard against rollovers (e.g. Feb 30 → Mar 2)
   if (
     date.getFullYear() !== year ||
     date.getMonth() !== month - 1 ||
@@ -210,12 +158,6 @@ export function parseShortDate(str: string, locale: string): Date | null {
   return date;
 }
 
-// ─── Input mask helpers ───────────────────────────────────────────────────────
-
-/**
- * Returns the literal separator character used in the locale's short date
- * format (e.g. "." for ru-RU/de-DE, "/" for en-US/fr-FR).
- */
 export function getDateSeparator(locale: string): string {
   const knownDate = new Date(2001, 2, 4);
   const parts = new Intl.DateTimeFormat(locale, {
@@ -226,11 +168,6 @@ export function getDateSeparator(locale: string): string {
   return parts.find((p) => p.type === 'literal')?.value ?? '.';
 }
 
-/**
- * Applies an auto-formatting mask to a raw input value.
- * Strips all non-digits, keeps at most 8, then inserts `sep` after positions 2 and 4.
- * Works uniformly for DD.MM.YYYY and MM/DD/YYYY layouts.
- */
 export function applyDateMask(raw: string, sep: string): string {
   const digits = raw.replace(/\D/g, '').slice(0, 8);
   if (digits.length <= 2) return digits;
@@ -238,13 +175,6 @@ export function applyDateMask(raw: string, sep: string): string {
   return `${digits.slice(0, 2)}${sep}${digits.slice(2, 4)}${sep}${digits.slice(4)}`;
 }
 
-// ─── Trigger aria-label ───────────────────────────────────────────────────────
-
-/**
- * Returns the dynamic aria-label for the calendar trigger button.
- * e.g. "Choose date, current date is Saturday, March 15, 2025"
- *       "Выбрать дату" (when no date selected, locale ru-RU)
- */
 export function formatTriggerAriaLabel(
   date: Date | null | undefined,
   locale: string,
@@ -253,8 +183,6 @@ export function formatTriggerAriaLabel(
   const formatted = formatFullDate(date, locale);
   return `${getUiString(locale, 'chooseDate')}, ${getUiString(locale, 'currentDate')} ${formatted}`;
 }
-
-// ─── Locale-aware UI strings ──────────────────────────────────────────────────
 
 type UiStringKey =
   | 'dateLabel'
@@ -267,12 +195,6 @@ type UiStringKey =
   | 'selected'
   | 'unavailable';
 
-/**
- * Returns a localised UI string for the given key.
- * Falls back to English when the locale is not in the built-in table.
- *
- * Extend this map to support additional languages.
- */
 export function getUiString(locale: string, key: UiStringKey): string {
   const lang = locale.split('-')[0]?.toLowerCase() ?? 'en';
   const strings: Record<string, Record<UiStringKey, string>> = {

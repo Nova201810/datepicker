@@ -1,15 +1,7 @@
 import { RefObject, useEffect } from 'react';
 
-/**
- * Traps keyboard focus within `containerRef` while `isActive` is true.
- *
- * Tab cycles forward through focusable elements; Shift+Tab cycles backward.
- * Because the calendar grid uses roving tabindex, only the active day button
- * enters the tab sequence at any time.
- *
- * Effective tab order inside the dialog:
- *   prevMonthBtn → nextMonthBtn → activeDayBtn → (wrap)
- */
+// Благодаря roving tabindex в tab-последовательности диалога находится ровно одна кнопка-день,
+// поэтому эффективный порядок Tab: «Пред. месяц» → «След. месяц» → активная ячейка → (wrap).
 export function useFocusTrap(
   containerRef: RefObject<HTMLElement | null>,
   isActive: boolean,

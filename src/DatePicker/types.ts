@@ -1,48 +1,38 @@
 export interface DatePickerProps {
   value?: Date | null;
-  /** Called with null when the user clears the input. */
   onChange: (date: Date | null) => void;
   minDate?: Date;
   maxDate?: Date;
-  /** Caller should memoize this array to avoid unnecessary re-renders */
+  /** Массив следует мемоизировать — иначе каждый рендер родителя вызовет пересчёт грида */
   disabledDates?: Date[];
-  /** BCP 47 locale tag, e.g. 'en-US', 'ru-RU'. Defaults to 'en-US'. */
   locale?: string;
 }
 
-/** One cell in the calendar grid */
 export interface CalendarCell {
   date: Date;
-  /** false = overflow day from prev/next month */
+  /** false = день из предыдущего / следующего месяца */
   isCurrentMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
-  /** true when date is outside [minDate, maxDate] or in disabledDates */
   isDisabled: boolean;
-  /** true on the single cell that holds tabIndex=0 (roving tabindex) */
+  /** true на единственной ячейке с tabIndex=0 (roving tabindex) */
   isFocused: boolean;
-  /** Localized screen-reader label with state, e.g. selected / unavailable */
+  /** Локализованная метка для скринридера: дата + состояние (выбрано / недоступно) */
   ariaLabel: string;
 }
 
-/** One row in the calendar grid — always exactly 7 cells */
 export type CalendarRow = CalendarCell[];
 
 export interface WeekdayHeader {
-  /** 0 = Sun, 1 = Mon … 6 = Sat (absolute, not locale-rotated) */
+  /** 0 = Sun, 1 = Mon … 6 = Sat (абсолютный индекс, не зависит от локали) */
   dayIndex: number;
-  /** e.g. "Sun" / "пн" */
   short: string;
-  /** e.g. "S" / "П" — used as visible cell content */
   narrow: string;
-  /** e.g. "Sunday" / "понедельник" — used in <th abbr> */
   long: string;
 }
 
-/** Return type of useCalendarGrid */
 export interface CalendarGridData {
   rows: CalendarRow[];
   weekdayHeaders: WeekdayHeader[];
-  /** e.g. "March 2025" — rendered in <h2 aria-live="polite"> */
   monthYearLabel: string;
 }

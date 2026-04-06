@@ -1,10 +1,5 @@
-/**
- * Proxy Component — паттерн «Прокси-компонент».
- *
- * Фиксирует обязательные атрибуты кнопки навигации по месяцу
- * (type, aria-label, disabled) и делегирует остальное потребителю.
- * Потребитель не обязан помнить про type="button" или aria-label.
- */
+// aria-disabled вместо disabled: кнопка остаётся в tab-порядке, AT озвучивает её как
+// недоступную — атрибут disabled полностью убирает элемент из accessibility tree.
 import React from 'react';
 import styles from './Calendar.module.css';
 
